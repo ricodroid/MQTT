@@ -43,7 +43,8 @@ class KmpMqttClient(
             onConnected = { _ /* reasonCode */ -> /* optional */ },
             onDisconnected = { _ /* reasonCode */ -> /* optional */ },
             publishReceived = { pkt ->
-                val bytes = pkt.payload?.toByteArray() ?: byteArrayOf() // ← null セーフ
+                println("KMP[shared] bytes=${pkt.payload?.size ?: 0}") // ← ★共通コードの証拠ログ
+                val bytes = pkt.payload?.toByteArray() ?: byteArrayOf()
                 onMsg?.invoke(bytes)
             }
         )
