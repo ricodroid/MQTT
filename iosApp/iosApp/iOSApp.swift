@@ -1,17 +1,14 @@
 import SwiftUI
-import CocoaMQTT   // 追加
-// import shared   // KMMのAPIを使うなら（Shared.xcframeworkを入れた場合）
+import shared   // ← KMM モジュール
 
 @main
 struct iOSApp: App {
-    private let mqtt = MqttTester()   // さっきのテスター（CocoaMQTTDelegate実装）
-
+    @StateObject private var vm = MqttViewModel()
     var body: some Scene {
-        WindowG<uses-permission android:name="android.permission.INTERNET" />roup {
+        WindowGroup {
             ContentView()
-                .onAppear {          // アプリ表示時に接続開始
-                    mqtt.start()
-                }
+                .onAppear { vm.start() }
+                .onDisappear { vm.stop() }
         }
     }
 }

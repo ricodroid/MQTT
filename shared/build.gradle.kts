@@ -6,6 +6,8 @@ plugins {
     id("com.android.library")
 }
 
+tasks.register("testClasses")
+
 kotlin {
     jvmToolchain(17)
 
@@ -22,6 +24,7 @@ kotlin {
         iosArm64(),
         iosSimulatorArm64()
     )
+
     iosTargets.forEach { t ->
         t.binaries.framework {
             baseName = "shared"
@@ -33,14 +36,16 @@ kotlin {
     sourceSets {
         val commonMain by getting {
             dependencies {
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
+                implementation("io.github.davidepianca98:kmqtt-common:0.4.8")
+                implementation("io.github.davidepianca98:kmqtt-client:0.4.8")
+                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
             }
         }
         val commonTest by getting { dependencies { implementation(kotlin("test")) } }
         val androidMain by getting {
             dependencies {
-                implementation("com.hivemq:hivemq-mqtt-client:1.3.9")
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
+
             }
         }
     }
