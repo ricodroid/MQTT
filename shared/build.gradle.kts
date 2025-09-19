@@ -1,19 +1,34 @@
+// 先頭に import
+import org.jetbrains.kotlin.gradle.plugin.mpp.apple.XCFramework
+
 plugins {
     id("org.jetbrains.kotlin.multiplatform")
     id("com.android.library")
 }
 
-
 kotlin {
     jvmToolchain(17)
 
     androidTarget {
-        compilations.all {
-            kotlinOptions { jvmTarget = "17" }
-        }
+        compilations.all { kotlinOptions { jvmTarget = "17" } }
     }
 
-    iosX64(); iosArm64(); iosSimulatorArm64()
+    // ★ アグリゲータに名前を付ける（ここでは "Shared"）
+    val xcf = XCFramework("Shared")
+
+    // ★ iOS ターゲットを明示して framework を xcf に登録
+    val iosTargets = listOf(
+        iosX64(),
+        iosArm64(),
+        iosSimulatorArm64()
+    )
+    iosTargets.forEach { t ->
+        t.binaries.framework {
+            baseName = "shared"
+            isStatic = true
+            xcf.add(this) // ← これが重要
+        }
+    }
 
     sourceSets {
         val commonMain by getting {
@@ -21,17 +36,13 @@ kotlin {
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
             }
         }
-        val commonTest by getting {
-            dependencies { implementation(kotlin("test")) }
-        }
+        val commonTest by getting { dependencies { implementation(kotlin("test")) } }
         val androidMain by getting {
             dependencies {
                 implementation("com.hivemq:hivemq-mqtt-client:1.3.9")
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
             }
         }
-        // iOS 側は coroutines-core が common から来るので追加不要
-
     }
 }
 

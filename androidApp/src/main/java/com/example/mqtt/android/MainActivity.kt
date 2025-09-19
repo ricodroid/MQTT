@@ -1,40 +1,33 @@
 package com.example.mqtt.android
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import com.example.mqtt.Greeting
+import androidx.lifecycle.lifecycleScope
+import com.example.mqtt.MqttClientFactory
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
+    private val client = MqttClientFactory.create()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent {
-            MyApplicationTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    GreetingView(Greeting().greet())
-                }
+        // 省略: setContent(...)
+
+        lifecycleScope.launch {
+            // 接続
+            client.connect(host = "test.mosquitto.org", port = 1883, tls = false)
+            // 購読
+            client.subscribe("demo/topic", qos = 0) { bytes ->
+                Log.d("MQTT", "Android RX = ${bytes.decodeToString()}")
             }
+            // 送信（テスト）
+            client.publish("demo/topic", "hello from Android".encodeToByteArray())
         }
     }
-}
 
-@Composable
-fun GreetingView(text: String) {
-    Text(text = text)
-}
-
-@Preview
-@Composable
-fun DefaultPreview() {
-    MyApplicationTheme {
-        GreetingView("Hello, Android!")
+    override fun onDestroy() {
+        lifecycleScope.launch { client.disconnect() }
+        super.onDestroy()
     }
 }
