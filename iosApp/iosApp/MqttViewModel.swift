@@ -8,51 +8,38 @@
 import SwiftUI
 import shared
 
+// ヘルパー（前に使ったやつ）
 func toKotlinByteArray(_ bytes: [UInt8]) -> KotlinByteArray {
     let arr = KotlinByteArray(size: Int32(bytes.count))
-    for (i, b) in bytes.enumerated() {
-        arr.set(index: Int32(i), value: Int8(bitPattern: b))
-    }
+    for (i, b) in bytes.enumerated() { arr.set(index: Int32(i), value: Int8(bitPattern: b)) }
     return arr
 }
-
-// KotlinByteArray → [UInt8]（受信時の変換にも便利）
 func toSwiftBytes(_ kbytes: KotlinByteArray) -> [UInt8] {
     let n = Int(kbytes.size)
     var out = [UInt8](repeating: 0, count: n)
-    for i in 0..<n {
-        out[i] = UInt8(bitPattern: kbytes.get(index: Int32(i)))
-    }
+    for i in 0..<n { out[i] = UInt8(bitPattern: kbytes.get(index: Int32(i))) }
     return out
 }
 
 final class MqttViewModel: ObservableObject {
-    private let client = ClientFactory.shared.makeKmpMqttClient()   // ← ここ！
+    // suspend を直接呼ばない Async ラッパーを使う
+    private let client = ClientFactory.shared.makeAsyncMqttClient()
+    private let topic = "demo/topic"
 
     func start() {
-        client.connect(
-            host: "test.mosquitto.org",
-            port: 1883,
-            tls: false,
-            clientId: nil,
-            username: nil,
-            password: nil,
-            keepAliveSec: 30
-        ) { error in
-            if let e = error { print("connect error:", e); return }
+        // IPv6問題回避：数値IPv4を使用（あなたの dig 結果）
+        client.connect(host: "5.196.78.28", port: 1883, tls: false,
+                       clientId: nil, username: nil, password: nil, keepAliveSec: 30) { err in
+            if let e = err { print("connect error:", e); return }
 
-            self.client.subscribe(topic: "demo/topic", qos: 0) { bytes in
-                // KotlinByteArray → [UInt8] → String
-                var buf = [UInt8](repeating: 0, count: Int(bytes.size))
-                for i in 0..<buf.count { buf[i] = UInt8(truncatingIfNeeded: bytes.get(index: Int32(i))) }
-                let text = String(bytes: buf, encoding: .utf8) ?? "<non-utf8>"
+            self.client.subscribe(topic: self.topic, qos: 0) { kbytes in
+                let text = String(bytes: toSwiftBytes(kbytes), encoding: .utf8) ?? "<non-utf8>"
                 print("iOS RX =", text)
             }
 
-            let payloadSwift = Array("hello from iOS".utf8)          // [UInt8]
-            let payload = toKotlinByteArray(payloadSwift)            // KotlinByteArray に変換
-            self.client.publish(topic: "demo/topic", payload: payload, qos: 0, retain: false) { e in
-                if let e = e { print("publish error:", e) }
+            let payload = toKotlinByteArray(Array("[ios] hello".utf8))
+            self.client.publish(topic: self.topic, payload: payload, qos: 0, retain: false) { pubErr in
+                if let e = pubErr { print("publish error:", e) }
             }
         }
     }
