@@ -64,6 +64,16 @@ class MqttController(
         client.publish(topic, text.encodeToByteArray(), qos, retain, onComplete)
     }
 
+    // 追加（Swiftから引数省略で呼べるように）:
+    @Suppress("unused")
+    fun publishText(topic: String, text: String) =
+        publishText(topic, text, 0, false) {}
+
+    /** 完了コールバックだけ受ける版も */
+    @Suppress("unused")
+    fun publishText(topic: String, text: String, onComplete: (Throwable?) -> Unit) =
+        publishText(topic, text, 0, false, onComplete)
+
     // 送信（JSONを簡易生成）
     fun publishJson(topic: String, map: Map<String, Any?>, qos: Int = 0, retain: Boolean = false,
                     onComplete: (Throwable?) -> Unit = {}) {

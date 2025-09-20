@@ -2,11 +2,20 @@ import SwiftUI
 import shared
 
 struct ContentView: View {
-	let greet = Greeting().greet()
+    @StateObject var vm = MqttViewModel()
+    @State private var text = ""
 
-	var body: some View {
-		Text(greet)
-	}
+    var body: some View {
+        VStack {
+            TextField("message", text: $text).textFieldStyle(.roundedBorder)
+            Button("Send") {
+                vm.publish(text: text)   // ← publishText をここで呼ぶ
+                text = ""
+            }
+        }
+        .onAppear { vm.start() }
+        .onDisappear { vm.stop() }
+    }
 }
 
 struct ContentView_Previews: PreviewProvider {

@@ -51,6 +51,10 @@ final class MqttViewModel: ObservableObject {
             }
         }
     }
+    
+    func publish(text: String) {
+        mqtt.publishText(topic: topic, text: text) // ← ここがSwift→Kotlinの入口
+    }
 
     func stop() {
         mqtt.disconnect { _ in }
