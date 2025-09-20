@@ -4,32 +4,27 @@ import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import com.example.mqtt.MqttClientAsync
+import com.example.mqtt.MqttController
 
 class MainActivity : ComponentActivity() {
 
     private val client = MqttClientAsync()
     private val topic = "demo/topic"
-
+    private val mqtt = MqttController()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        client.connect(
-            host = "test.mosquitto.org",
-            port = 1883,
-            tls = false
-        ) { err ->
-            if (err != null) {
-                Log.e("MQTT", "connect failed", err)
-                return@connect
+        mqtt.setBroker(MqttController.Broker(host = "10.0.2.2", port = 1883, tls = false))
+        mqtt.connect { err ->
+            if (err != null) { Log.e("MQTT", "connect error", err); return@connect }
+
+            mqtt.subscribe("demo/topic") { text ->
+                Log.d("MQTT", "Android RX = $text")
             }
-            // 購読（コールバックで受信）
-            client.subscribe(topic, qos = 0) { bytes ->
-                Log.d("MQTT", "Android RX = ${bytes.decodeToString()}")
-            }
-            // 送信（完了コールバック任意）
-            client.publish(topic, "hello from Android".encodeToByteArray()) { pubErr ->
-                if (pubErr != null) Log.e("MQTT", "publish failed", pubErr)
-            }
+
+            mqtt.publishText("demo/topic", "[android] hello")
+            // 例：JSON送信
+            // mqtt.publishJson("demo/telemetry", mapOf("temp" to 23, "ts" to System.currentTimeMillis()))
         }
     }
 

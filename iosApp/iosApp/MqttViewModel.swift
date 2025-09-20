@@ -22,29 +22,37 @@ func toSwiftBytes(_ kbytes: KotlinByteArray) -> [UInt8] {
 }
 
 final class MqttViewModel: ObservableObject {
-    // suspend を直接呼ばない Async ラッパーを使う
-    private let client = ClientFactory.shared.makeAsyncMqttClient()
+    // 旧: MqttController() は使わない（init() unavailable の回避）
+    private let mqtt = ClientFactory.shared.makeController()
     private let topic = "demo/topic"
 
     func start() {
-        // IPv6問題回避：数値IPv4を使用（あなたの dig 結果）
-        client.connect(host: "5.196.78.28", port: 1883, tls: false,
-                       clientId: nil, username: nil, password: nil, keepAliveSec: 30) { err in
+        // Broker もファクトリ経由（すべての引数を指定できる）
+        let b = ClientFactory.shared.broker(
+            host: "127.0.0.1",
+            port: 1883,
+            tls: false,
+            clientId: nil,
+            username: nil,
+            password: nil,
+            keepAliveSec: 30
+        )
+        mqtt.setBroker(b: b)
+
+        mqtt.connect { err in
             if let e = err { print("connect error:", e); return }
 
-            self.client.subscribe(topic: self.topic, qos: 0) { kbytes in
-                let text = String(bytes: toSwiftBytes(kbytes), encoding: .utf8) ?? "<non-utf8>"
+            self.mqtt.subscribe(topic: self.topic, qos: 0) { text in
                 print("iOS RX =", text)
             }
 
-            let payload = toKotlinByteArray(Array("[ios] hello".utf8))
-            self.client.publish(topic: self.topic, payload: payload, qos: 0, retain: false) { pubErr in
-                if let e = pubErr { print("publish error:", e) }
+            self.mqtt.publishText(topic: self.topic, text: "[ios] hello", qos: 0, retain: false) { e in
+                if let e = e { print("publish error:", e) }
             }
         }
     }
 
     func stop() {
-        client.disconnect { _ in }
+        mqtt.disconnect { _ in }
     }
 }

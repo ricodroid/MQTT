@@ -1,4 +1,10 @@
-package com.example.mqtt
+//
+//  ClientFactory.swift
+//  iosApp
+//
+//  Created by r_murata on 2025/09/20.
+//  Copyright © 2025 orgName. All rights reserved.
+//
 
 
 import kotlinx.coroutines.CoroutineScope
