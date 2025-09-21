@@ -5,7 +5,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 /**
- * Android側でコルーチンを使わずに呼べるようにする薄いラッパー。
+ * Android側でコルーチンを使わずに呼べるようにするラッパー。
  * Dispatchers.Default を使うので、androidApp側に coroutines-android は不要。
  */
 class MqttClientAsync(
