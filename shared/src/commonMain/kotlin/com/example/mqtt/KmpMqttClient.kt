@@ -25,7 +25,7 @@ class KmpMqttClient(
         port: Int,
         tls: Boolean,
         clientId: String?,
-        username: String?,          // 0.4.8 では username は未使用（パラメータ無し）
+        username: String?,          // 0.4.8 では username は未使用
         password: String?,          // 0.4.8 では password は UByteArray? 型
         keepAliveSec: Int
     ) = withContext(Dispatchers.Default) {
@@ -60,9 +60,8 @@ class KmpMqttClient(
             1 -> Qos.AT_LEAST_ONCE
             else -> Qos.AT_MOST_ONCE
         }
-        // 0.4.8 でもこの形で入る構成が多いです。もしエラーなら下の代替へ。
         client?.subscribe(listOf(Subscription(topic, SubscriptionOptions(q))))
-        // 代替（必要なら↑をコメントアウトして↓を使う）
+        // 代替（通らない場合あり）
         // client?.subscribe(listOf(Subscription(topic, q)))
     }
 
@@ -79,7 +78,7 @@ class KmpMqttClient(
 
     override suspend fun disconnect() {
         runner?.cancel()
-        client?.disconnect(ReasonCode.SUCCESS)   // SUCCESS=0x00
+        client?.disconnect(ReasonCode.SUCCESS)   // SUCCESS=0x00 これ以外だとなぜかエラー
         client = null
         onMsg = null
     }

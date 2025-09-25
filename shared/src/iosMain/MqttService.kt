@@ -34,7 +34,6 @@ class MqttService(
             publishReceived = { /* 受信メッセージ処理 */ }
         )
 
-        // ブロッキングのループをバックグラウンドで回す
         runner = scope.launch { client?.run() }
     }
 

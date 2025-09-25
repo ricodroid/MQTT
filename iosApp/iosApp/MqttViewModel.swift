@@ -22,14 +22,15 @@ func toSwiftBytes(_ kbytes: KotlinByteArray) -> [UInt8] {
 }
 
 final class MqttViewModel: ObservableObject {
-    // 旧: MqttController() は使わない（init() unavailable の回避）
+
     private let mqtt = ClientFactory.shared.makeController()
     private let topic = "demo/topic"
 
     func start() {
         // Broker もファクトリ経由（すべての引数を指定できる）
         let b = ClientFactory.shared.broker(
-            host: "127.0.0.1",
+            // host: "127.0.0.1", // iOSエミュレーター
+            host: "10.0.0.158", // iOS実機 ipconfig getifaddr en0 でipを検索して入れてる
             port: 1883,
             tls: false,
             clientId: nil,
@@ -43,7 +44,7 @@ final class MqttViewModel: ObservableObject {
             if let e = err { print("connect error:", e); return }
 
             self.mqtt.subscribe(topic: self.topic, qos: 0) { text in
-                print("iOS RX =", text)
+                print("iOS =", text)
             }
 
             self.mqtt.publishText(topic: self.topic, text: "[ios] hello", qos: 0, retain: false) { e in

@@ -4,6 +4,7 @@ package com.example.mqtt
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 
+// 参照がないように見えるが、iOSのプロジェクトに組み込んでいるため必要。
 object ClientFactory {
     @Suppress("unused")
     fun makeController(): MqttController =
