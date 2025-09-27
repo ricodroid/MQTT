@@ -3,6 +3,7 @@ import org.jetbrains.kotlin.gradle.plugin.mpp.apple.XCFramework
 
 plugins {
     id("org.jetbrains.kotlin.multiplatform")
+    id("org.jetbrains.kotlin.plugin.serialization") version "1.9.20"
     id("com.android.library")
 }
 
@@ -39,6 +40,8 @@ kotlin {
                 implementation("io.github.davidepianca98:kmqtt-common:0.4.8")
                 implementation("io.github.davidepianca98:kmqtt-client:0.4.8")
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
+                implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.6.3")
+                implementation("org.jetbrains.kotlinx:kotlinx-serialization-cbor:1.6.3")
             }
         }
         val commonTest by getting { dependencies { implementation(kotlin("test")) } }

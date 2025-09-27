@@ -43,14 +43,36 @@ final class MqttViewModel: ObservableObject {
         mqtt.connect { err in
             if let e = err { print("connect error:", e); return }
 
-            self.mqtt.subscribe(topic: self.topic, qos: 0) { text in
-                print("iOS =", text)
+            // 1) 先に購読（CBOR）
+            CborAPI.shared.subscribeTelemetry(
+                controller: self.mqtt,
+                topic: "demo/telemetry",
+                qos: 0
+            ) { tel in
+                print("iOS CBOR購読 telemetry =", tel)
             }
 
-            self.mqtt.publishText(topic: self.topic, text: "[ios] hello", qos: 0, retain: false) { e in
+            // 2) その後に送信（CBOR）
+            let tel = Telemetry(temp: 25,
+                                ts: Int64(Date().timeIntervalSince1970 * 1000),
+                                deviceId: "ios")
+
+            CborAPI.shared.publishTelemetry(
+                controller: self.mqtt,
+                topic: "demo/telemetry",
+                obj: tel,
+                qos: 0,
+                retain: false
+            ) { e in
+                if let e = e { print("publish error:", e) }
+            }
+
+            // テキスト送信
+            self.mqtt.publishText(topic: self.topic, text: "[ios] hello") { e in
                 if let e = e { print("publish error:", e) }
             }
         }
+
     }
     
     func publish(text: String) {

@@ -1,10 +1,14 @@
 package com.example.mqtt
 
+import kotlinx.serialization.decodeFromByteArray
+import kotlinx.serialization.encodeToByteArray
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.cbor.Cbor
 
 /**
  * KMP一本化：接続/購読/送信/状態を共通Kotlinで完結
@@ -14,6 +18,29 @@ class MqttController(
 ) {
     // 実体は非suspendラッパー（Swift/Android両対応）
     private val client = MqttClientAsync(client = KmpMqttClient(), scope = scope)
+
+    @PublishedApi
+    internal fun publishBytes(
+        topic: String,
+        payload: ByteArray,
+        qos: Int = 0,
+        retain: Boolean = false,
+        onComplete: (Throwable?) -> Unit = {}
+    ) { client.publish(topic, payload, qos, retain, onComplete) }
+
+    // ★ これを追加
+    @PublishedApi
+    internal fun subscribeBytes(
+        topic: String,
+        qos: Int = 0,
+        onBytes: (ByteArray) -> Unit
+    ) {
+        client.subscribe(topic, qos) { bytes ->
+            // ログ用に messages へも載せたい場合はプレースホルダ文字列にして追加
+            _messages.value = _messages.value + Message(topic, "<binary>", bytes)
+            onBytes(bytes)
+        }
+    }
 
     // 接続設定
     data class Broker(
@@ -64,7 +91,7 @@ class MqttController(
         client.publish(topic, text.encodeToByteArray(), qos, retain, onComplete)
     }
 
-    // 追加（Swiftから引数省略で呼べるように）:
+    // 追加（Swiftから引数省略で呼べるように）
     @Suppress("unused")
     fun publishText(topic: String, text: String) =
         publishText(topic, text, 0, false) {}
@@ -91,4 +118,61 @@ class MqttController(
         }
         publishText(topic, json, qos, retain, onComplete)
     }
+}
+
+@PublishedApi
+internal val CborBin = Cbor {
+    ignoreUnknownKeys = true
+    encodeDefaults = true
+}
+/** Kotlin側（Androidなど）で使う：reified 版 */
+inline fun <reified T> MqttController.subscribeCbor(
+    topic: String,
+    qos: Int = 0,
+    crossinline onObject: (T) -> Unit
+) {
+    subscribeBytes(topic, qos) { bytes ->   // ← ここを subscribeBytes に
+        runCatching { CborBin.decodeFromByteArray<T>(bytes) }
+            .onSuccess(onObject)
+            .onFailure { /* ログ */ }
+    }
+}
+
+/** Kotlin側（Androidなど）で使う：reified 版 */
+inline fun <reified T> MqttController.publishCbor(
+    topic: String,
+    obj: T,
+    qos: Int = 0,
+    retain: Boolean = false,
+    noinline onComplete: (Throwable?) -> Unit = {}
+) {
+    val payload = CborBin.encodeToByteArray(obj)
+    publishBytes(topic, payload, qos, retain, onComplete)
+}
+
+/** Swift(iOS)からも使える serializer 指定版（reified不可のため） */
+fun <T> MqttController.subscribeCbor(
+    topic: String,
+    kSerializer: KSerializer<T>,
+    qos: Int = 0,
+    onObject: (T) -> Unit
+) {
+    subscribeBytes(topic, qos) { bytes ->
+        runCatching { CborBin.decodeFromByteArray(kSerializer, bytes) }
+            .onSuccess(onObject)
+            .onFailure { /* ログ */ }
+    }
+}
+
+/** Swift(iOS)からも使える serializer 指定版 */
+fun <T> MqttController.publishCbor(
+    topic: String,
+    obj: T,
+    serializer: KSerializer<T>,
+    qos: Int = 0,
+    retain: Boolean = false,
+    onComplete: (Throwable?) -> Unit = {}
+) {
+    val payload = CborBin.encodeToByteArray(serializer, obj)
+    publishBytes(topic, payload, qos, retain, onComplete)
 }
